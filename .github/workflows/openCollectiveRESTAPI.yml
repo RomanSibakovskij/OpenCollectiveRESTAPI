@@ -1,0 +1,36 @@
+name: Automated Open Collective REST API Test with Postman through CI pipeline
+
+on: push
+
+env:
+  POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+jobs:
+  automated-api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '23.1.x'
+      - name: Install Newman
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-html
+      - name: Fetch Postman collection
+        run: |
+          curl -X GET "https://api.getpostman.com/collections/36297486-269e126e-d3bd-4bba-90f7-56cc6c2beca6" \
+            -H "X-Api-Key: ${POSTMAN_API_KEY}" > collection.json
+      - name: Fetch Postman environment
+        run: |
+          curl -X GET "https://api.getpostman.com/environments/36297486-58afb761-255d-4775-856a-3f2ee2b503b5" \
+            -H "X-Api-Key: ${POSTMAN_API_KEY}" > environment.json
+      - name: Run API test
+        run: |
+          newman run collection.json -e environment.json --reporters cli,html --reporter-html-export report.html
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: report.html
